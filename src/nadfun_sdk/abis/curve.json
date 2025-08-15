@@ -1,0 +1,75 @@
+[
+  {
+    "type": "function",
+    "name": "curves",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "realMonReserve",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "realTokenReserve",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "virtualMonReserve",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "virtualTokenReserve",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "k",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "targetTokenAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "initVirtualMonReserve",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "initVirtualTokenReserve",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isListed",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

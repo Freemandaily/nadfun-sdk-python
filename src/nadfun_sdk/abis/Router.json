@@ -19,9 +19,7 @@
         ]
       }
     ],
-    "outputs": [
-      { "name": "amountOut", "type": "uint256", "internalType": "uint256" }
-    ],
+    "outputs": [{ "name": "amountOut", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "payable"
   },
   {
@@ -45,9 +43,7 @@
         ]
       }
     ],
-    "outputs": [
-      { "name": "amountOut", "type": "uint256", "internalType": "uint256" }
-    ],
+    "outputs": [{ "name": "amountOut", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "nonpayable"
   }
 ]

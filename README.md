@@ -1,234 +1,502 @@
-Here’s a **simple-English `README.md`** you can use.
+# Nad.fun Python SDK
 
----
+A comprehensive Python SDK for interacting with Nad.fun ecosystem contracts on Monad blockchain, including bonding curves, DEX trading, and real-time event monitoring.
 
-# Nadfun Python SDK (beta)
+## Features
 
-This is a small Python SDK to **get quotes** and **trade tokens** with the Nadfun contracts
-(BondingCurve + Wrapper).
+- 🚀 **Trading**: Execute buy/sell operations on bonding curves with slippage protection
+- 💰 **Token Operations**: ERC-20 token interactions (balance, approve, transfer)
+- 📊 **Bonding Curves**: Query curve parameters and check listing status
+- 🔄 **Real-time Streaming**: Monitor bonding curve and DEX events via WebSocket
+- ⚡ **Async/Await**: Fully asynchronous design for high performance
+- 🔐 **Type Safety**: Full type hints for better IDE support
 
----
-
-## What you can do
-
-- **Quotes**
-
-  - `get_amount_out(token, amount_in, is_buy)` → returns `(router_addr, amount_out)`
-  - `get_amount_in(token, amount_out, is_buy)` → returns `(router_addr, amount_in)`
-
-- **Curve info**
-
-  - `get_curves(token)` → returns 8 numbers (reserves, k, etc.)
-  - `is_listed(token)` → `True/False`
-
-- **Trades**
-
-  - `buy(router_addr, token_addr, to_addr, amount_in, amount_out_min)`
-  - `sell(router_addr, token_addr, to_addr, amount_in, amount_out_min)`
-
----
-
-## Requirements
-
-- Python **3.11+** (CPython or PyPy)
-- Packages: `web3`, `eth-account`, `eth-abi`, `eth-utils`, `python-dotenv` (for examples)
-
----
-
-## Install
+## Installation
 
 ```bash
-# (optional) create venv
-python -m venv .venv
-# Windows
-.\.venv\Scripts\activate
-# macOS/Linux
-source .venv/bin/activate
-
-pip install -U pip
-pip install web3 eth-account eth-abi eth-utils python-dotenv
+pip install nadfun-sdk
 ```
 
----
+Or install from source:
 
-## Project layout (example)
-
-```
-your-project/
-  src/
-    nadfun_sdk/
-      __init__.py
-      router.py
-      abi_loader.py
-      constants.py        # must define: wrapperContractAddress, curveContractAddress
-      abis/
-        wrapper.json
-        curve.json
-        erc20Permit.json
-  examples/
-    buy.py
-    sell.py
-  .env
-  README.md
+```bash
+git clone https://github.com/naddotfun/nadfun-sdk-python.git
+cd nadfun-sdk-python
+pip install -e .
 ```
 
-`constants.py` must include the on-chain addresses:
-
-```py
-# src/nadfun_sdk/constants.py
-wrapperContractAddress = "0x...."
-curveContractAddress   = "0x...."
-```
-
----
-
-## .env file
-
-Create a `.env` file in the project root:
-
-```env
-RPC_URL=https://your-rpc.example
-PRIVATE_KEY=0xYOUR_PRIVATE_KEY
-MY_ADDRESS=0xYourWalletAddress
-```
-
----
-
-## Quick start
+## Quick Start
 
 ```python
-# examples/buy.py
-from nadfun_sdk import NadfunSDK
-from dotenv import load_dotenv
-import os
+import asyncio
+from nadfun_sdk import Trade, BuyParams, calculate_slippage
 
-load_dotenv()
-RPC_URL = os.getenv("RPC_URL")
-PRIVATE_KEY = os.getenv("PRIVATE_KEY")
-MY_ADDRESS = os.getenv("MY_ADDRESS")
+async def main():
+    # Initialize trade client
+    trade = Trade(rpc_url="https://monad-testnet.rpc.url", private_key="your_private_key")
 
-sdk = NadfunSDK(RPC_URL, PRIVATE_KEY)
+    # Get quote for buying tokens
+    token = "0x1957d1BED06c69f479f564E9Dc163e3Cf4E3eF03"
+    amount_in = 1 * 10**18  # 1 MON
+    quote = await trade.get_amount_out(token, amount_in, is_buy=True)
 
-TOKEN_ADDRESS = "0x62f0956153dD2261E97f32d505eE6aAca671D61e"  # example
+    # Execute buy with slippage protection
+    params = BuyParams(
+        token=token,
+        to=trade.address,
+        amount_in=amount_in,
+        amount_out_min=calculate_slippage(quote.amount, 5)  # 5% slippage tolerance
+    )
+    tx_hash = await trade.buy(params, quote.router)
+    print(f"Transaction: {tx_hash}")
 
-print("\n=== BUY TEST ===")
-
-amount_in_wei = 1 * 10**18  # 1 MON in wei
-
-router_addr, amount_out = sdk.get_amount_out(TOKEN_ADDRESS, amount_in_wei, is_buy=True)
-print(f"router_addr: {router_addr}")
-print(f"amount_out: {amount_out}")
-
-# 20% slippage
-amount_out_min = int(amount_out * 0.8)
-
-try:
-    tx_hash = sdk.buy(router_addr, TOKEN_ADDRESS, MY_ADDRESS, amount_in_wei, amount_out_min)
-    print(f"Buy tx_hash: {tx_hash}")
-except Exception as e:
-    print(f"Buy error: {e}")
+asyncio.run(main())
 ```
+
+## Core Modules
+
+### 🚀 Trading
+
+Execute trades on bonding curves with automatic routing:
 
 ```python
-# examples/sell.py
-from nadfun_sdk import NadfunSDK
-from dotenv import load_dotenv
-import os
+from nadfun_sdk import Trade, BuyParams, SellParams, calculate_slippage
 
-load_dotenv()
-RPC_URL = os.getenv("RPC_URL")
-PRIVATE_KEY = os.getenv("PRIVATE_KEY")
-MY_ADDRESS = os.getenv("MY_ADDRESS")
+trade = Trade(rpc_url, private_key)
 
-sdk = NadfunSDK(RPC_URL, PRIVATE_KEY)
+# Get quotes
+buy_quote = await trade.get_amount_out(token, mon_amount, is_buy=True)
+sell_quote = await trade.get_amount_out(token, token_amount, is_buy=False)
 
-TOKEN_ADDRESS = "0x62f0956153dD2261E97f32d505eE6aAca671D61e"  # example
+# Buy tokens
+buy_params = BuyParams(
+    token=token,
+    to=wallet_address,
+    amount_in=mon_amount,
+    amount_out_min=calculate_slippage(buy_quote.amount, 5),
+    deadline=None  # Auto-sets to now + 120 seconds
+)
+tx = await trade.buy(buy_params, buy_quote.router)
 
-print("\n=== SELL TEST ===")
+# Sell tokens
+sell_params = SellParams(
+    token=token,
+    to=wallet_address,
+    amount_in=token_amount,
+    amount_out_min=calculate_slippage(sell_quote.amount, 5),
+    deadline=None
+)
+tx = await trade.sell(sell_params, sell_quote.router)
 
-amount_in_wei = 1_000_000 * 10**18  # 1,000,000 MEME (example)
-
-router_addr, amount_out = sdk.get_amount_out(TOKEN_ADDRESS, amount_in_wei, is_buy=False)
-print(f"router_addr: {router_addr}")
-print(f"amount_out: {amount_out}")
-
-# 20% slippage
-amount_out_min = int(amount_out * 0.8)
-
-try:
-    tx_hash = sdk.sell(router_addr, TOKEN_ADDRESS, MY_ADDRESS, amount_in_wei, amount_out_min)
-    print(f"Sell tx_hash: {tx_hash}")
-except Exception as e:
-    print(f"Sell error: {e}")
+# Wait for transaction
+receipt = await trade.wait_for_transaction(tx, timeout=60)
 ```
 
-Run:
+### 💰 Token Operations
+
+Interact with ERC-20 tokens:
+
+```python
+from nadfun_sdk import Token
+
+token = Token(rpc_url, private_key)
+
+# Get token metadata
+metadata = await token.get_metadata(token_address)
+print(f"Token: {metadata['name']} ({metadata['symbol']})")
+print(f"Decimals: {metadata['decimals']}")
+print(f"Total Supply: {metadata['totalSupply']}")
+
+# Check balances
+balance = await token.get_balance(token_address)
+balance = await token.get_balance(token_address, owner_address)  # Check other address
+
+# Check allowance
+allowance = await token.get_allowance(token_address, spender_address)
+
+# Approve tokens
+tx = await token.approve(token_address, spender_address, amount)
+
+# Transfer tokens
+tx = await token.transfer(token_address, recipient_address, amount)
+
+# Smart approval (only approves if needed)
+tx = await token.check_and_approve(token_address, spender_address, required_amount)
+```
+
+### 📊 Bonding Curve Data
+
+Query bonding curve information:
+
+```python
+# Check if token is listed on curve
+is_listed = await trade.is_listed(token_address)
+
+# Get curve reserves
+curve_data = await trade.get_curves(token_address)
+print(f"Reserve MON: {curve_data.reserve_mon}")
+print(f"Reserve Token: {curve_data.reserve_token}")
+
+# Get amount needed for specific output
+quote = await trade.get_amount_in(token_address, desired_output, is_buy=True)
+```
+
+### 🔄 Real-time Event Streaming
+
+Monitor events in real-time using WebSocket connections:
+
+#### Curve Events Stream
+
+```python
+from nadfun_sdk import CurveStream, EventType, CurveEvent
+from typing import AsyncIterator
+
+# Initialize stream
+stream = CurveStream(ws_url, debug=True)
+
+# Subscribe to specific events
+stream.subscribe([EventType.BUY])  # Only BUY events
+stream.subscribe([EventType.SELL])  # Only SELL events
+stream.subscribe([EventType.BUY, EventType.SELL])  # Both
+stream.subscribe()  # All events (default)
+
+# Process events with typed async iterator
+event: CurveEvent
+async for event in stream.events():
+    print(f"Event: {event['eventName']}")      # "BUY" or "SELL"
+    print(f"Trader: {event['trader']}")        # Buyer/Seller address
+    print(f"Token: {event['token']}")          # Token address
+    print(f"Amount In: {event['amountIn']}")   # MON for buy, tokens for sell
+    print(f"Amount Out: {event['amountOut']}") # Tokens for buy, MON for sell
+    print(f"Block: {event['blockNumber']}")
+    print(f"Tx: {event['transactionHash']}")
+```
+
+#### DEX Swap Events Stream
+
+```python
+from nadfun_sdk import DexStream, DexSwapEvent
+
+# Initialize stream
+stream = DexStream(ws_url, debug=True)
+
+# Subscribe to tokens (automatically finds pools)
+stream.subscribe_tokens("0x1234...")  # Single token
+stream.subscribe_tokens(["0x1234...", "0x5678..."])  # Multiple tokens
+
+# Process swap events with typed iterator
+event: DexSwapEvent
+async for event in stream.events():
+    print(f"Event: {event['eventName']}")
+    print(f"BlockNumber: {event['blockNumber']}")
+    print(f"Pool: {event['pool']}")
+    print(f"Sender: {event['sender']}")
+    print(f"Recipient: {event['recipient']}")
+    print(f"Amount0: {event['amount0']}")
+    print(f"Amount1: {event['amount1']}")
+    print(f"Liquidity: {event['liquidity']}")
+    print(f"Tick: {event['tick']}")
+    print(f"Price (sqrt X96): {event['sqrtPriceX96']}")
+    print(f"Tx: {event['transactionHash']}")
+    print("-" * 50)
+```
+
+## API Reference
+
+### Trade Class
+
+```python
+trade = Trade(rpc_url: str, private_key: str)
+```
+
+#### Methods
+
+- `async get_amount_out(token: str, amount_in: int, is_buy: bool) -> QuoteResult`
+
+  - Get expected output amount for a trade
+  - Returns `QuoteResult` with `router` address and `amount`
+
+- `async get_amount_in(token: str, amount_out: int, is_buy: bool) -> QuoteResult`
+
+  - Get required input amount for desired output
+  - Returns `QuoteResult` with `router` address and `amount`
+
+- `async buy(params: BuyParams, router: str, nonce: int = None, gas: int = None) -> str`
+
+  - Execute buy transaction
+  - Returns transaction hash
+
+- `async sell(params: SellParams, router: str, nonce: int = None, gas: int = None) -> str`
+
+  - Execute sell transaction
+  - Returns transaction hash
+
+- `async is_listed(token: str) -> bool`
+
+  - Check if token is listed on bonding curve
+
+- `async get_curves(token: str) -> CurveData`
+
+  - Get bonding curve reserves
+  - Returns `CurveData` with `reserve_mon` and `reserve_token`
+
+- `async wait_for_transaction(tx_hash: str, timeout: int = 60) -> Dict`
+  - Wait for transaction confirmation
+
+### Token Class
+
+```python
+token = Token(rpc_url: str, private_key: str)
+```
+
+#### Methods
+
+- `async get_balance(token: str, address: str = None) -> int`
+
+  - Get token balance (defaults to own address)
+
+- `async get_allowance(token: str, spender: str, owner: str = None) -> int`
+
+  - Get approved amount (defaults to own address as owner)
+
+- `async get_metadata(token: str) -> TokenMetadata`
+
+  - Get token metadata (name, symbol, decimals, totalSupply)
+
+- `async approve(token: str, spender: str, amount: int) -> str`
+
+  - Approve tokens for spending
+
+- `async transfer(token: str, to: str, amount: int) -> str`
+
+  - Transfer tokens
+
+- `async check_and_approve(token: str, spender: str, required: int, buffer_percent: float = 10) -> Optional[str]`
+  - Smart approval - only approves if current allowance is insufficient
+
+### Stream Classes
+
+#### CurveStream
+
+```python
+stream = CurveStream(ws_url: str, debug: bool = False)
+```
+
+- `subscribe(event_types: List[EventType] = None)` - Set events to subscribe to
+- `async events() -> AsyncIterator[Dict]` - Async iterator yielding parsed events
+
+#### DexStream
+
+```python
+stream = DexStream(ws_url: str, debug: bool = False)
+```
+
+- `subscribe_tokens(token_addresses: Union[str, List[str]])` - Set tokens to monitor
+- `async events() -> AsyncIterator[Dict]` - Async iterator yielding swap events
+
+### Type Definitions
+
+```python
+class BuyParams:
+    token: str          # Token address to buy
+    to: str            # Recipient address
+    amount_in: int     # MON amount to spend
+    amount_out_min: int # Minimum tokens to receive
+    deadline: Optional[int] = None  # Transaction deadline
+
+class SellParams:
+    token: str          # Token address to sell
+    to: str            # Recipient address
+    amount_in: int     # Token amount to sell
+    amount_out_min: int # Minimum MON to receive
+    deadline: Optional[int] = None
+
+class QuoteResult:
+    router: str        # Router contract address
+    amount: int        # Expected amount
+
+class CurveData:
+    reserve_mon: int   # MON reserves in curve
+    reserve_token: int # Token reserves in curve
+
+class TokenMetadata:
+    name: str
+    symbol: str
+    decimals: int
+    totalSupply: int
+
+# Event Types (TypedDict for type hints)
+class CurveEvent:
+    eventName: str          # "BUY" or "SELL"
+    blockNumber: int        # Block number
+    transactionHash: str    # Transaction hash
+    trader: str            # Buyer/Seller address
+    token: str             # Token address
+    amountIn: int          # Amount in
+    amountOut: int         # Amount out
+
+class DexSwapEvent:
+    eventName: str          # "Swap"
+    blockNumber: int        # Block number
+    transactionHash: str    # Transaction hash
+    pool: str              # Pool address
+    sender: str            # Sender address
+    recipient: str         # Recipient address
+    amount0: int           # Token0 amount (can be negative)
+    amount1: int           # Token1 amount (can be negative)
+    sqrtPriceX96: int      # Square root price
+    liquidity: int         # Liquidity
+    tick: int              # Price tick
+```
+
+### Utilities
+
+- `calculate_slippage(amount: int, percent: float) -> int`
+  - Calculate minimum output amount with slippage tolerance
+
+## Configuration
+
+Create a `.env` file in your project root. You can copy from `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+### Environment Variables
+
+```bash
+# Network endpoints
+RPC_URL=                                   # HTTP RPC endpoint for Monad testnet
+WS_URL=                                    # WebSocket endpoint for real-time event streaming
+
+# Wallet configuration
+PRIVATE_KEY=your_private_key_here         # Private key (without 0x prefix)
+
+# Token addresses
+TOKEN=0x...                                # Single token address for trading
+TOKENS=0x...                               # Multiple token addresses for DEX monitoring (comma-separated)
+
+# Trading parameters
+AMOUNT=                                    # Amount in MON for trading (e.g., 0.1)
+SLIPPAGE=                                  # Slippage tolerance percentage (e.g., 5)
+
+# Optional
+RECIPIENT=                                 # Recipient address for transfers (defaults to your address)
+```
+
+### Network Information
+
+- **Chain**: Monad Testnet
+- **Chain ID**: 10143
+- **Native Token**: MON
+- **Block Explorer**: https://explorer.monad.net
+
+## Examples
+
+The SDK includes comprehensive examples in the `examples/` directory. First, set up your environment:
+
+```bash
+# Copy example environment file
+cp .env.example .env
+
+# Edit .env with your configuration
+nano .env
+```
+
+### Trading Examples
+
+#### Buy Tokens (`examples/buy.py`)
 
 ```bash
 python examples/buy.py
+```
+
+Demonstrates buying tokens on the bonding curve with slippage protection.
+
+#### Sell Tokens (`examples/sell.py`)
+
+```bash
 python examples/sell.py
 ```
 
----
+Shows selling tokens back to the bonding curve.
 
-## How it works (short)
+### Token Operations (`examples/token_operations.py`)
 
-- The SDK creates a Web3 client with your `RPC_URL`.
-- Your private key is loaded only in your process; transactions are **signed locally**.
-- Gas:
-
-  - uses `w3.eth.gas_price` (legacy) and fixed gas limits:
-
-    - buy: `261000`
-    - sell: `232000`
-
-- Deadline: current time + 300 seconds.
-
-If you need to change gas:
-
-```py
-# router.py
-tx['gas'] = 261000  # adjust here
-tx['gasPrice'] = self.w3.eth.gas_price  # or set your own number
+```bash
+python examples/token_operations.py
 ```
 
----
+Examples of token interactions:
 
-## API (very short)
+- Checking balances
+- Approving spending
+- Transferring tokens
+- Getting token metadata
 
-```py
-sdk = NadfunSDK(rpc_url, private_key)
+### Real-time Event Streaming
 
-# quotes
-router, out_amt = sdk.get_amount_out(token, amount_in, is_buy=True)   # returns tuple
-router, in_amt  = sdk.get_amount_in(token, amount_out, is_buy=False)
+#### Curve Events (`examples/curve_stream.py`)
 
-# curve info
-tuple8 = sdk.get_curves(token)
-listed = sdk.is_listed(token)  # bool
-
-# trades
-tx_hash = sdk.buy(router, token, to, amount_in, amount_out_min)
-tx_hash = sdk.sell(router, token, to, amount_in, amount_out_min)
+```bash
+python examples/curve_stream.py
 ```
 
-**Notes**
+Stream real-time bonding curve Buy/Sell events with filtering options.
 
-- All token amounts are **wei**.
-- `is_buy=True` means spending native coin (e.g., MON) to buy tokens.
-- Addresses must be **checksum** (SDK converts with `to_checksum` internally).
+#### DEX Swaps (`examples/dex_stream.py`)
 
----
+```bash
+python examples/dex_stream.py
+```
 
-## Troubleshooting
+Monitor DEX swap events for specified tokens in real-time.
 
-- `RPC connection failed` → check `RPC_URL` and network.
-- `insufficient funds` → your wallet needs native coin for gas / buy value.
-- `replacement fee too low` → raise `gasPrice`.
-- Wrong token/router → always use `get_amount_out / get_amount_in` first; pass the returned **router address** into `buy/sell`.
+## Contract Addresses
 
----
+All contract addresses are defined in `src/nadfun_sdk/constants.py`:
+
+- **Wrapper Contract**: `0x4F5A3518F082275edf59026f72B66AC2838c0414`
+- **Curve Contract**: `0x52D34d8536350Cd997bCBD0b9E9d722452f341F5`
+- **Lens Contract**: `0x4F5A3518F082275edf59026f72B66AC2838c0414`
+- **V3 Factory**: `0x4f6F577e3bfB25dF11f635d93E5ff645d30CB474`
+- **WMON Token**: `0x88CCF31322CEc314E36D0c993651cE14e4AE7B2d`
+
+## Requirements
+
+- Python 3.11+
+- web3.py >= 7.0.0
+- eth-account
+- eth-abi
+- python-dotenv
+
+## Development
+
+```bash
+# Clone the repository
+git clone https://github.com/naddotfun/nadfun-sdk-python.git
+cd nadfun-sdk-python
+
+# Install in development mode
+pip install -e .
+
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Format code
+black src/ examples/
+
+# Type checking
+mypy src/
+```
 
 ## License
 
-MIT (or your project’s license)
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Support
+
+- 📖 [Examples](examples/) - Comprehensive usage examples
+- 🐛 [Issues](https://github.com/naddotfun/nadfun-sdk-python/issues) - Bug reports and feature requests
+- 💬 [Discussions](https://github.com/naddotfun/nadfun-sdk-python/discussions) - Community support
+- 📚 [Documentation](https://docs.nad.fun) - Official Nad.fun documentation

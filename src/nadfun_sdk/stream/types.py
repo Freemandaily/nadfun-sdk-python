@@ -9,8 +9,16 @@ from typing import TypedDict, Optional, Union
 class EventType(Enum):
     """Event types for streaming"""
     # Bonding Curve events
+    CREATE = "CurveCreate(address,uint256,uint256)"
     BUY = "CurveBuy(address,address,uint256,uint256)"
     SELL = "CurveSell(address,address,uint256,uint256)"
+    SYNC = "CurveSync(address,uint256,uint256)"
+    LOCK = "CurveTokenLocked(address,uint256)"
+    LISTED = "CurveTokenListed(address,uint256)"
+
+    SWAP = "Swap(address,address,int256,int256,uint160,int24,int24)"
+    MINT = "Mint(address,address,address,int256,int256,int256)"
+    BURN = "Burn(address,address,address,int256,int256,int256)"
 
 
 class CurveEvent(TypedDict):

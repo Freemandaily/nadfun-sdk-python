@@ -16,8 +16,8 @@ async def main():
     token_address = os.getenv("TOKEN")
     recipient = os.getenv("RECIPIENT")
     
-    if not private_key or not token_address:
-        print("Please set PRIVATE_KEY and TOKEN environment variables")
+    if not all([rpc_url, private_key, token_address]):
+        print("Please set RPC_URL, PRIVATE_KEY and TOKEN environment variables")
         return
     
     # Initialize Token helper

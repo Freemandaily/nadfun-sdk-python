@@ -5,12 +5,9 @@ Curve event stream with async iterator pattern
 import asyncio
 from typing import List, AsyncIterator, Optional, Dict, Any
 from web3 import AsyncWeb3, WebSocketProvider
-from nadfun_sdk.stream.types import EventType
 from .parser import parse_curve_event
-
-# Constants
-CONTRACT_ADDRESS = "0x52D34d8536350Cd997bCBD0b9E9d722452f341F5"
-
+from ...constants import CONTRACTS
+from ...stream.types import EventType
 
 class CurveStream:
     def __init__(self, ws_url: str, debug: bool = False):
@@ -46,7 +43,7 @@ class CurveStream:
             
             # Create filter
             filter_params = {
-                "address": CONTRACT_ADDRESS,
+                "address": CONTRACTS["curve"],
                 "topics": [topics]  # [[buy, sell]] for OR filter
             }
             

@@ -4,7 +4,7 @@ Real-time bonding curve event monitoring
 
 import asyncio
 import os
-from nadfun_sdk.stream import CurveStream, EventType
+from nadfun_sdk import CurveStream, EventType
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,6 +12,10 @@ load_dotenv()
 async def main():
     # Configuration
     ws_url = os.getenv("WS_URL")
+    
+    if not ws_url:
+        print("Please set WS_URL environment variable")
+        return
     
     print("Bonding Curve Event Stream")
     print(f"WebSocket URL: {ws_url}")

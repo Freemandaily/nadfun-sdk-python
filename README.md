@@ -29,7 +29,7 @@ pip install -e .
 
 ```python
 import asyncio
-from nadfun_sdk import Trade, BuyParams, calculate_slippage
+from nadfun_sdk import Trade, BuyParams, calculate_slippage, parseMon
 
 async def main():
     # Initialize trade client
@@ -37,7 +37,7 @@ async def main():
 
     # Get quote for buying tokens
     token = "0x1957d1BED06c69f479f564E9Dc163e3Cf4E3eF03"
-    amount_in = 1 * 10**18  # 1 MON
+    amount_in = parseMon(1)  # 1 MON
     quote = await trade.get_amount_out(token, amount_in, is_buy=True)
 
     # Execute buy with slippage protection
@@ -149,7 +149,6 @@ Monitor events in real-time using WebSocket connections:
 
 ```python
 from nadfun_sdk import CurveStream, EventType, CurveEvent
-from typing import AsyncIterator
 
 # Initialize stream
 stream = CurveStream(ws_url, debug=True)
@@ -199,6 +198,66 @@ async for event in stream.events():
     print(f"Price (sqrt X96): {event['sqrtPriceX96']}")
     print(f"Tx: {event['transactionHash']}")
     print("-" * 50)
+```
+
+### 📚 Historical Event Indexing
+
+Index historical blockchain events for analysis:
+
+#### Curve Indexer
+
+```python
+from nadfun_sdk import CurveIndexer, EventType
+
+# Initialize indexer
+indexer = CurveIndexer(rpc_url)
+
+# Get current block number
+latest_block = await indexer.get_block_number()
+from_block = latest_block - 1000  # Last 1000 blocks
+
+# Fetch all events
+all_events = await indexer.fetch_events(from_block, latest_block)
+
+# Filter by event types
+trade_events = await indexer.fetch_events(
+    from_block,
+    latest_block,
+    event_types=[EventType.BUY, EventType.SELL]
+)
+
+# Filter by token
+token_events = await indexer.fetch_events(
+    from_block,
+    latest_block,
+    token_filter="0x1234..."
+)
+```
+
+#### DEX Indexer
+
+```python
+from nadfun_sdk import DexIndexer
+
+# Initialize indexer
+indexer = DexIndexer(rpc_url)
+
+# Get current block number
+latest_block = await indexer.get_block_number()
+
+# Fetch swap events by tokens (automatically finds pools)
+swap_events = await indexer.fetch_events(
+    from_block,
+    latest_block,
+    tokens=["0x1234...", "0x5678..."]
+)
+
+# Or fetch by specific pool addresses
+pool_events = await indexer.fetch_events(
+    from_block,
+    latest_block,
+    pools="0xabcd..."
+)
 ```
 
 ## API Reference
@@ -294,6 +353,38 @@ stream = DexStream(ws_url: str, debug: bool = False)
 - `subscribe_tokens(token_addresses: Union[str, List[str]])` - Set tokens to monitor
 - `async events() -> AsyncIterator[Dict]` - Async iterator yielding swap events
 
+### Indexer Classes
+
+#### CurveIndexer
+
+Historical event indexer for bonding curve events:
+
+```python
+indexer = CurveIndexer(rpc_url: str)
+```
+
+- `async fetch_events(from_block: int, to_block: int, event_types: List[EventType] = None, token_filter: str = None) -> List[Dict]`
+  - Fetch historical curve events in a block range
+  - Optionally filter by event types (CREATE, BUY, SELL, SYNC, LOCK, LISTED)
+  - Optionally filter by token address
+- `async get_block_number() -> int`
+  - Get current block number
+
+#### DexIndexer
+
+Historical event indexer for DEX swap events:
+
+```python
+indexer = DexIndexer(rpc_url: str)
+```
+
+- `async fetch_events(from_block: int, to_block: int, pools: Union[str, List[str]] = None, tokens: Union[str, List[str]] = None) -> List[Dict]`
+  - Fetch historical swap events in a block range
+  - Optionally filter by pool address(es) or token address(es)
+  - When filtering by tokens, automatically finds pools from V3 factory
+- `async get_block_number() -> int`
+  - Get current block number
+
 ### Type Definitions
 
 ```python
@@ -303,6 +394,9 @@ class BuyParams:
     amount_in: int     # MON amount to spend
     amount_out_min: int # Minimum tokens to receive
     deadline: Optional[int] = None  # Transaction deadline
+    nonce: Optional[int] = None     # Transaction nonce
+    gas: Optional[int] = None       # Gas limit
+    gas_price: Optional[int] = None # Gas price
 
 class SellParams:
     token: str          # Token address to sell
@@ -310,6 +404,9 @@ class SellParams:
     amount_in: int     # Token amount to sell
     amount_out_min: int # Minimum MON to receive
     deadline: Optional[int] = None
+    nonce: Optional[int] = None
+    gas: Optional[int] = None
+    gas_price: Optional[int] = None
 
 class QuoteResult:
     router: str        # Router contract address
@@ -353,6 +450,8 @@ class DexSwapEvent:
 
 - `calculate_slippage(amount: int, percent: float) -> int`
   - Calculate minimum output amount with slippage tolerance
+- `parseMon(amount: float | str) -> int`
+  - Convert MON amount to wei (18 decimals)
 
 ## Configuration
 
@@ -379,9 +478,6 @@ TOKENS=0x...                               # Multiple token addresses for DEX mo
 # Trading parameters
 AMOUNT=                                    # Amount in MON for trading (e.g., 0.1)
 SLIPPAGE=                                  # Slippage tolerance percentage (e.g., 5)
-
-# Optional
-RECIPIENT=                                 # Recipient address for transfers (defaults to your address)
 ```
 
 ### Network Information
@@ -405,18 +501,18 @@ nano .env
 
 ### Trading Examples
 
-#### Buy Tokens (`examples/buy.py`)
+#### Buy Tokens (`examples/trade/buy.py`)
 
 ```bash
-python examples/buy.py
+python examples/trade/buy.py
 ```
 
 Demonstrates buying tokens on the bonding curve with slippage protection.
 
-#### Sell Tokens (`examples/sell.py`)
+#### Sell Tokens (`examples/trade/sell.py`)
 
 ```bash
-python examples/sell.py
+python examples/trade/sell.py
 ```
 
 Shows selling tokens back to the bonding curve.
@@ -436,21 +532,47 @@ Examples of token interactions:
 
 ### Real-time Event Streaming
 
-#### Curve Events (`examples/curve_stream.py`)
+#### Curve Events (`examples/stream/curve_stream.py`)
 
 ```bash
-python examples/curve_stream.py
+python examples/stream/curve_stream.py
 ```
 
 Stream real-time bonding curve Buy/Sell events with filtering options.
 
-#### DEX Swaps (`examples/dex_stream.py`)
+#### DEX Swaps (`examples/stream/dex_stream.py`)
 
 ```bash
-python examples/dex_stream.py
+python examples/stream/dex_stream.py
 ```
 
 Monitor DEX swap events for specified tokens in real-time.
+
+### Historical Event Indexing
+
+#### Curve Indexer (`examples/stream/curve_indexer.py`)
+
+```bash
+python examples/stream/curve_indexer.py
+```
+
+Index historical bonding curve events:
+
+- Fetch all event types or filter specific ones
+- Filter by token address
+- Analyze event patterns
+
+#### DEX Indexer (`examples/stream/dex_indexer.py`)
+
+```bash
+python examples/stream/dex_indexer.py
+```
+
+Index historical DEX swap events:
+
+- Fetch swap events from V3 pools
+- Filter by pool addresses or token addresses
+- Analyze swap patterns
 
 ## Contract Addresses
 
@@ -498,5 +620,3 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 - 📖 [Examples](examples/) - Comprehensive usage examples
 - 🐛 [Issues](https://github.com/naddotfun/nadfun-sdk-python/issues) - Bug reports and feature requests
-- 💬 [Discussions](https://github.com/naddotfun/nadfun-sdk-python/discussions) - Community support
-- 📚 [Documentation](https://docs.nad.fun) - Official Nad.fun documentation

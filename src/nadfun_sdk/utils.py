@@ -14,10 +14,13 @@ def now_ts() -> int:
     """Get current timestamp in seconds."""
     return int(time.time())
 
+def parseMon(amount) -> int:
+    return AsyncWeb3.to_wei(amount, "ether")
+
 # ─────────────────────────────────────
 # Slippage utilities
 # ─────────────────────────────────────
-def calculate_slippage(amount: int, slippage_percent: float = 0.5) -> int:
+def calculate_slippage(amount: int, slippage_percent: int = 0) -> int:
     """Calculate minimum output amount with slippage tolerance."""
     if slippage_percent < 0 or slippage_percent > 100:
         raise ValueError("slippage_percent must be between 0 and 100")

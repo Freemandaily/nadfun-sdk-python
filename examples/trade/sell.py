@@ -4,9 +4,8 @@ Sell tokens example
 
 import asyncio
 import os
-from nadfun_sdk import Trade, Token, SellParams, calculate_slippage
+from nadfun_sdk import Trade, Token, SellParams, calculate_slippage, parseMon
 from dotenv import load_dotenv
-from web3 import AsyncWeb3
 
 load_dotenv()
 
@@ -14,10 +13,9 @@ async def main():
     # Configuration
     rpc_url = os.getenv("RPC_URL")
     private_key = os.getenv("PRIVATE_KEY")
-    recipient = os.getenv("RECIPIENT")
     token_address = os.getenv("TOKEN")
     amount = os.getenv("AMOUNT")
-    slippage = os.getenv("SLIPPAGE")
+    slippage = float(os.getenv("SLIPPAGE"))
 
     if not private_key or not token_address:
         print("Please set PRIVATE_KEY and TOKEN environment variables")
@@ -33,18 +31,19 @@ async def main():
         print("No tokens to sell")
         return
     
-    amount_to_sell = AsyncWeb3.to_wei(amount, "ether")
-    print(f"Selling {amount_to_sell} tokens")
+    print(f"Selling {amount} tokens")
     print(f"Token: {token_address}")
+
+    amount_to_sell = parseMon(amount)
     
     # Get quote
     quote = await trade.get_amount_out(token_address, amount_to_sell, is_buy=False)
     print(f"Router: {quote.router}")
-    print(f"Expected MON: {AsyncWeb3.from_wei(quote.amount, 'ether')} MON")
+    print(f"Expected MON: {quote.amount} MON")
     
     # Calculate minimum MON with slippage
     min_mon = calculate_slippage(quote.amount, slippage)
-    print(f"Minimum MON ({slippage}% slippage): {AsyncWeb3.from_wei(min_mon, 'ether')} MON")
+    print(f"Minimum MON ({slippage}% slippage): {min_mon} MON")
     
     # Check and approve if needed
     print("Checking allowance...")
@@ -64,8 +63,11 @@ async def main():
         token=token_address,
         amount_in=amount_to_sell,
         amount_out_min=min_mon,
-        to=recipient,
-        deadline=None
+        to=trade.address,
+        deadline=None,
+        nonce=None,
+        gas=None,
+        gas_price=None,
     )
     
     tx_hash = await trade.sell(sell_params, quote.router)

@@ -4,7 +4,7 @@ Real-time DEX swap monitoring
 
 import asyncio
 import os
-from nadfun_sdk.stream import DexStream
+from nadfun_sdk import DexStream
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,19 +14,20 @@ async def main():
     ws_url = os.getenv("WS_URL")
     tokens = os.getenv("TOKENS")
     
+    if not ws_url or not tokens:
+        print("Please set WS_URL and TOKENS environment variables")
+        return
+    
     print("DEX Swap Event Stream")
     print(f"WebSocket URL: {ws_url}")
     
     # Initialize stream based on configuration
     stream = DexStream(ws_url)
     
-    if tokens:
-        # Subscribe to single token
-        print(f"Subscribing to token: {tokens}")
-        stream.subscribe_tokens(tokens)
-    else:
-        print("Please set TOKEN environment variable")
-        return
+    # Subscribe to tokens (split by comma if multiple)
+    token_list = [token.strip() for token in tokens.split(",") if token.strip()]
+    print(f"Subscribing to tokens: {token_list}")
+    stream.subscribe_tokens(token_list)
     
     print("-" * 50)
     print("Listening for swap events...")

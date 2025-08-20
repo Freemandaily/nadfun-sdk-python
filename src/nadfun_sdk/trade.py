@@ -96,10 +96,12 @@ class Trade:
         except Exception as e:
             raise RuntimeError(f"Failed to check listing status: {e}")
 
-    async def _send_transaction(self, to: str, calldata: bytes, *, value: int = 0, nonce: int = None, gas: int = None) -> str:
+    async def _send_transaction(self, to: str, calldata: bytes, *, value: int = 0, nonce: int = None, gas: int = None, gas_price: int = None) -> str:
         try:
             # Get current gas price and nonce
-            gas_price = int(await self.w3.eth.gas_price)
+            if gas_price is None:
+                gas_price = int(await self.w3.eth.gas_price)
+
             if nonce is None:
                 nonce = await self.w3.eth.get_transaction_count(self.address, "pending")
             
@@ -127,16 +129,11 @@ class Trade:
         except Exception as e:
             raise RuntimeError(f"Transaction failed: {e}")
 
-    async def buy(self, params: BuyParams, router_addr: str, nonce: int = None, gas: int = None) -> str:
-        """Execute a buy transaction.
+    async def buy(self, params: BuyParams, router_addr: str) -> str:
+        nonce = params.nonce
+        gas = params.gas
+        gas_price = params.gas_price
         
-        Args:
-            params: Buy parameters
-            router_addr: Router contract address
-            
-        Returns:
-            Transaction hash
-        """
         # Set deadline if not provided
         deadline = (
             int(time.time()) + DEFAULT_DEADLINE_SECONDS 
@@ -161,11 +158,16 @@ class Trade:
             self.buy_sel + encoded_params,
             value=int(params.amount_in),
             nonce=nonce,
-            gas=gas
+            gas=gas,
+            gas_price=gas_price
         )
 
-    async def sell(self, params: SellParams, router_addr: str, nonce: int = None, gas: int = None) -> str:
+    async def sell(self, params: SellParams, router_addr: str) -> str:
 
+        nonce = params.nonce
+        gas = params.gas
+        gas_price = params.gas_price
+        
         # Set deadline if not provided
         deadline = (
             int(time.time()) + DEFAULT_DEADLINE_SECONDS
@@ -190,7 +192,8 @@ class Trade:
             router_addr,
             self.sell_sel + encoded_params,
             nonce=nonce,
-            gas=gas
+            gas=gas,
+            gas_price=gas_price
         )
     
     async def wait_for_transaction(self, tx_hash: str, timeout: int = 60) -> Dict[str, Any]:

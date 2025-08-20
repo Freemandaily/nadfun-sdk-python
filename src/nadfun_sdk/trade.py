@@ -3,8 +3,7 @@ Trade module for interacting with NADFUN trading contracts.
 """
 from __future__ import annotations
 import time
-from typing import Tuple, Optional, Dict, Any
-from decimal import Decimal
+from typing import Dict, Any
 
 from eth_abi import encode
 from eth_account import Account

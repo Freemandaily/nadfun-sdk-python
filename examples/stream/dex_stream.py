@@ -4,7 +4,7 @@ Real-time DEX swap monitoring
 
 import asyncio
 import os
-from nadfun_sdk import DexStream
+from nadfun_sdk import DexStream, EventType
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -27,7 +27,7 @@ async def main():
     # Subscribe to tokens (split by comma if multiple)
     token_list = [token.strip() for token in tokens.split(",") if token.strip()]
     print(f"Subscribing to tokens: {token_list}")
-    stream.subscribe_tokens(token_list)
+    stream.subscribe_tokens(token_list, event_types=[])
     
     print("-" * 50)
     print("Listening for swap events...")

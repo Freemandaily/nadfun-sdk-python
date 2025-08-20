@@ -7,7 +7,8 @@ A comprehensive Python SDK for interacting with Nad.fun ecosystem contracts on M
 - 🚀 **Trading**: Execute buy/sell operations on bonding curves with slippage protection
 - 💰 **Token Operations**: ERC-20 token interactions (balance, approve, transfer)
 - 📊 **Bonding Curves**: Query curve parameters and check listing status
-- 🔄 **Real-time Streaming**: Monitor bonding curve and DEX events via WebSocket
+- 🔄 **Real-time Streaming**: Monitor bonding curve and DEX events via WebSocket with token filtering
+- 📚 **Historical Indexing**: Fetch and analyze past events with CurveIndexer and DexIndexer
 - ⚡ **Async/Await**: Fully asynchronous design for high performance
 - 🔐 **Type Safety**: Full type hints for better IDE support
 
@@ -151,13 +152,19 @@ Monitor events in real-time using WebSocket connections:
 from nadfun_sdk import CurveStream, EventType, CurveEvent
 
 # Initialize stream
-stream = CurveStream(ws_url, debug=True)
+stream = CurveStream(ws_url)
 
 # Subscribe to specific events
 stream.subscribe([EventType.BUY])  # Only BUY events
 stream.subscribe([EventType.SELL])  # Only SELL events
 stream.subscribe([EventType.BUY, EventType.SELL])  # Both
 stream.subscribe()  # All events (default)
+
+# Filter by token addresses (optional)
+stream.subscribe(
+    [EventType.BUY, EventType.SELL],
+    token_addresses=["0x1234...", "0x5678..."]  # Only events from these tokens
+)
 
 # Process events with typed async iterator
 event: CurveEvent
@@ -177,7 +184,7 @@ async for event in stream.events():
 from nadfun_sdk import DexStream, DexSwapEvent
 
 # Initialize stream
-stream = DexStream(ws_url, debug=True)
+stream = DexStream(ws_url)
 
 # Subscribe to tokens (automatically finds pools)
 stream.subscribe_tokens("0x1234...")  # Single token
@@ -338,7 +345,7 @@ token = Token(rpc_url: str, private_key: str)
 #### CurveStream
 
 ```python
-stream = CurveStream(ws_url: str, debug: bool = False)
+stream = CurveStream(ws_url: str)
 ```
 
 - `subscribe(event_types: List[EventType] = None)` - Set events to subscribe to
@@ -347,7 +354,7 @@ stream = CurveStream(ws_url: str, debug: bool = False)
 #### DexStream
 
 ```python
-stream = DexStream(ws_url: str, debug: bool = False)
+stream = DexStream(ws_url: str)
 ```
 
 - `subscribe_tokens(token_addresses: Union[str, List[str]])` - Set tokens to monitor

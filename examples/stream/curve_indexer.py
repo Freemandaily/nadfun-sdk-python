@@ -27,7 +27,7 @@ async def main():
     latest_block = await indexer.get_block_number()
     
     # Define block range (last 1000 blocks)
-    from_block = max(0, latest_block - 1000)
+    from_block = max(0, latest_block - 100)
     to_block = latest_block
     
     print(f"Fetching events from block {from_block} to {to_block}")
@@ -35,7 +35,7 @@ async def main():
     
     # Example 1: Fetch all event types
     print("\n1. Fetching all curve events...")
-    all_events = await indexer.fetch_events(from_block, to_block)
+    all_events = await indexer.fetch_events(from_block, to_block, token_filter=token)   
     print(f"Found {len(all_events)} total events")
     
     # Count by event type

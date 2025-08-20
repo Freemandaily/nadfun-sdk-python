@@ -168,7 +168,7 @@ class CurveIndexer:
                 "token": self.w3.to_checksum_address(token),
                 "amountIn": amount_in,
                 "amountOut": amount_out,
-                "timestamp": datetime.fromtimestamp(block['timestamp']).isoformat(),
+                "timestamp": block['timestamp'],
             }
             
         except Exception as e:

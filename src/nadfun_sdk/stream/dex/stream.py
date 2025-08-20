@@ -4,29 +4,32 @@ Uniswap V3 DEX event stream with async iterator pattern
 
 import asyncio
 import json
+
 from typing import List, AsyncIterator, Optional, Dict, Any
 from pathlib import Path
 from web3 import AsyncWeb3, WebSocketProvider, Web3
 from eth_abi import decode
 
 from ...constants import CONTRACTS, NADS_FEE_TIER
-
+from ...stream.types import EventType
 
 class DexStream:
-    def __init__(self, ws_url: str, debug: bool = False):
+    def __init__(self, ws_url: str):
         self.ws_url = ws_url
-        self.debug = debug
         self.token_addresses: List[str] = []
         self.pool_addresses: List[str] = []
         self._subscription_id: Optional[str] = None
-        self._w3: Optional[AsyncWeb3] = None
+        self.event_types: List[EventType] = []
         
-    def subscribe_tokens(self, token_addresses):
+    def subscribe_tokens(self, token_addresses, event_types: List[EventType] = None):
         """Set which tokens to monitor (will find pools automatically)"""
         # Handle both single string and list of strings
         if isinstance(token_addresses, str):
             token_addresses = [token_addresses]
         self.token_addresses = [Web3.to_checksum_address(addr) for addr in token_addresses]
+        if event_types is None:
+            event_types = [EventType.SWAP, EventType.MINT, EventType.BURN]
+        self.event_types = event_types
         
     async def _discover_pools(self, w3: AsyncWeb3) -> List[str]:
         """Discover V3 pools for configured tokens"""
@@ -65,11 +68,9 @@ class DexStream:
                 
                 if pool_address and pool_address != "0x0000000000000000000000000000000000000000":
                     pools.append(pool_address)
-                    if self.debug:
-                        print(f"Found pool for {token[:8]}...: {pool_address}")
+                    pass
             except Exception as e:
-                if self.debug:
-                    print(f"No pool found for {token[:8]}...")
+                pass
         
         return pools
     
@@ -77,14 +78,11 @@ class DexStream:
         """Async iterator that yields parsed swap events"""
         # Connect
         async with AsyncWeb3(WebSocketProvider(self.ws_url)) as w3:
-            self._w3 = w3
             
             # Discover pools
             self.pool_addresses = await self._discover_pools(w3)
             
             if not self.pool_addresses:
-                if self.debug:
-                    print("No pools found")
                 return
             
             # Swap event signature
@@ -99,8 +97,6 @@ class DexStream:
             # Subscribe
             self._subscription_id = await w3.eth.subscribe("logs", filter_params)
             
-            if self.debug:
-                print(f"Subscribed: {self._subscription_id}")
             
             # Process events
             async for payload in w3.socket.process_subscriptions():

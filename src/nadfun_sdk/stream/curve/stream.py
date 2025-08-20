@@ -4,25 +4,32 @@ Curve event stream with async iterator pattern
 
 import asyncio
 from typing import List, AsyncIterator, Optional, Dict, Any
-from web3 import AsyncWeb3, WebSocketProvider
+from web3 import AsyncWeb3, WebSocketProvider, Web3
 from .parser import parse_curve_event
 from ...constants import CONTRACTS
 from ...stream.types import EventType
 
 class CurveStream:
-    def __init__(self, ws_url: str, debug: bool = False):
+    def __init__(self, ws_url: str):
         self.ws_url = ws_url
-        self.debug = debug
         self.event_types: List[EventType] = []
+        self.token_addresses: List[str] = []
         self._subscription_id: Optional[str] = None
         self._w3: Optional[AsyncWeb3] = None
         self._topic_map: Dict[bytes, str] = {}  # topic -> event name mapping
         
-    def subscribe(self, event_types: List[EventType] = None):
+    def subscribe(self, event_types: List[EventType] = None, token_addresses: List[str] = None):
         """Set which events to subscribe to"""
         if event_types is None:
             event_types = [EventType.BUY, EventType.SELL]
         self.event_types = event_types
+
+        if token_addresses is not None:
+            if isinstance(token_addresses, str):
+                token_addresses = [token_addresses]
+            # Filter out None and empty strings
+            valid_addresses = [addr for addr in token_addresses if addr and addr.strip()]
+            self.token_addresses = [Web3.to_checksum_address(addr) for addr in valid_addresses]
         
         
     async def events(self) -> AsyncIterator[Dict[str, Any]]:
@@ -50,8 +57,6 @@ class CurveStream:
             # Subscribe
             self._subscription_id = await w3.eth.subscribe("logs", filter_params)
             
-            if self.debug:
-                print(f"Subscribed: {self._subscription_id}")
             
             # Process events
             async for payload in w3.socket.process_subscriptions():
@@ -81,5 +86,10 @@ class CurveStream:
                 # Parse and yield event
                 event = parse_curve_event(log, event_name)
                 if event:
+                    # Filter by token address if specified
+                    if self.token_addresses:
+                        event_token = event.get('token', '').lower()
+                        if not any(addr.lower() == event_token for addr in self.token_addresses):
+                            continue
                     yield event
     

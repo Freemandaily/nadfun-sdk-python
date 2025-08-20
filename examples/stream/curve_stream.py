@@ -12,6 +12,7 @@ load_dotenv()
 async def main():
     # Configuration
     ws_url = os.getenv("WS_URL")
+    tokens = os.getenv("TOKENS")
     
     if not ws_url:
         print("Please set WS_URL environment variable")
@@ -22,7 +23,14 @@ async def main():
     
     # Initialize stream
     stream = CurveStream(ws_url)
-    stream.subscribe([EventType.BUY,EventType.SELL])
+    
+    # Subscribe with optional token filter
+    if tokens:
+        token_list = [t.strip() for t in tokens.split(',') if t.strip()]
+        stream.subscribe([EventType.BUY, EventType.SELL], token_addresses=token_list)
+    else:
+        stream.subscribe([EventType.BUY, EventType.SELL])
+    print(f"Subscribing to tokens: {stream.token_addresses}")
     
     print("-" * 50)
     print("Listening for events...")

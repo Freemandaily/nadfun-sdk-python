@@ -21,7 +21,7 @@ from .stream import (
 from .stream.curve.indexer import CurveIndexer
 from .stream.dex.indexer import DexIndexer
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = [
     # Core classes

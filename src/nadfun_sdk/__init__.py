@@ -8,7 +8,7 @@ from .types import BuyParams, SellParams, QuoteResult, CurveData, TokenMetadata
 from .utils import calculate_slippage, parseMon
 from .constants import CONTRACTS, CHAIN_ID, DEFAULT_DEADLINE_SECONDS, NADS_FEE_TIER
 
-# Stream exports
+# Stream exports - with Indexers
 from .stream import (
     CurveStream,
     DexStream,
@@ -17,11 +17,12 @@ from .stream import (
     DexSwapEvent
 )
 
-# Indexer exports
-from .stream.curve.indexer import CurveIndexer
-from .stream.dex.indexer import DexIndexer
+# Import Indexers directly from their modules
+from .stream.curve import CurveIndexer
+from .stream.dex import DexIndexer
 
-__version__ = "0.1.2"
+
+__version__ = "0.1.3"
 
 __all__ = [
     # Core classes
@@ -41,8 +42,6 @@ __all__ = [
     "EventType",
     "CurveEvent",
     "DexSwapEvent",
-    
-    # Indexers
     "CurveIndexer",
     "DexIndexer",
     

@@ -2,12 +2,11 @@
 Curve event stream with async iterator pattern
 """
 
-import asyncio
 from typing import List, AsyncIterator, Optional, Dict, Any
 from web3 import AsyncWeb3, WebSocketProvider, Web3
-from .parser import parse_curve_event
 from ...constants import CONTRACTS
 from ...stream.types import EventType
+from .parser import parse_curve_event
 
 class CurveStream:
     def __init__(self, ws_url: str):

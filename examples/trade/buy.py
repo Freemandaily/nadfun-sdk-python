@@ -53,16 +53,16 @@ async def main():
     )
     
     tx_hash = await trade.buy(buy_params, quote.router)
-    print(f"Transaction submitted: {tx_hash}")
+    print(f"Transaction submitted: 0x{tx_hash}")
     
     # Wait for confirmation
     print("Waiting for confirmation...")
     receipt = await trade.wait_for_transaction(tx_hash, timeout=60)
     
     if receipt["status"] == 1:
-        print(f"✅ Buy successful! Gas used: {receipt['gasUsed']}")
+        print(f"Buy successful! Gas used: {receipt['gasUsed']}")
     else:
-        print("❌ Transaction failed")
+        print("Transaction failed")
 
 if __name__ == "__main__":
     asyncio.run(main())

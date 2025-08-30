@@ -4,11 +4,11 @@ Historical event indexer for DEX swap events
 
 from typing import List, Dict, Any, Optional, Union
 from web3 import AsyncWeb3, AsyncHTTPProvider
-from eth_abi import decode
 
 from ...constants import CONTRACTS, NADS_FEE_TIER
 from ...stream.types import EventType
 from ...utils import load_default_abis
+from .parser import parse_swap_event
 
 
 class DexIndexer:
@@ -154,62 +154,17 @@ class DexIndexer:
     async def _parse_swap_event(self, log: Dict) -> Optional[Dict[str, Any]]:
         """Parse a swap log entry into an event"""
         try:
-            # Parse indexed parameters (topics)
-            # topics[1] = sender, topics[2] = recipient
-            sender_bytes = bytes.fromhex(
-                log['topics'][1].hex()[2:] if hasattr(log['topics'][1], 'hex') 
-                else log['topics'][1][2:]
-            )
-            recipient_bytes = bytes.fromhex(
-                log['topics'][2].hex()[2:] if hasattr(log['topics'][2], 'hex')
-                else log['topics'][2][2:]
-            )
+            # Use common parser
+            parsed_event = parse_swap_event(log)
+            if not parsed_event:
+                return None
             
-            sender = "0x" + sender_bytes[-20:].hex()
-            recipient = "0x" + recipient_bytes[-20:].hex()
-            
-            # Parse non-indexed parameters (data)
-            data = log['data']
-            if isinstance(data, str):
-                data_bytes = bytes.fromhex(data[2:])
-            else:
-                data_bytes = data
-            
-            # Decode: int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick
-            amount0, amount1, sqrt_price, liquidity, tick = decode(
-                ["int256", "int256", "uint160", "uint128", "int24"], 
-                data_bytes
-            )
-            
-            # Get block timestamp
+            # Get block timestamp and add to parsed event
             block = await self.w3.eth.get_block(log['blockNumber'])
+            parsed_event['timestamp'] = block['timestamp']
+            parsed_event['logIndex'] = log['logIndex']
             
-            # Get pool address from log
-            pool_address = log['address']
-            if hasattr(pool_address, 'hex'):
-                pool_address = pool_address.hex()
-            elif not pool_address.startswith('0x'):
-                pool_address = '0x' + pool_address
-            
-            return {
-                "eventName": "Swap",
-                "blockNumber": log['blockNumber'],
-                "transactionHash": (
-                    log['transactionHash'].hex() 
-                    if hasattr(log['transactionHash'], 'hex') 
-                    else log['transactionHash']
-                ),
-                "logIndex": log['logIndex'],
-                "pool": self.w3.to_checksum_address(pool_address),
-                "sender": self.w3.to_checksum_address(sender),
-                "recipient": self.w3.to_checksum_address(recipient),
-                "amount0": amount0,
-                "amount1": amount1,
-                "sqrtPriceX96": sqrt_price,
-                "liquidity": liquidity,
-                "tick": tick,
-                "timestamp": block['timestamp'],
-            }
+            return parsed_event
             
         except Exception as e:
             print(f"Error parsing swap event: {e}")

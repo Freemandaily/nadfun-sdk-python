@@ -5,10 +5,10 @@ Historical event indexer for bonding curve events
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from web3 import AsyncWeb3, AsyncHTTPProvider
-from eth_abi import decode
 
 from ...constants import CONTRACTS
 from ..types import EventType
+from .parser import parse_curve_event
 
 
 class CurveIndexer:
@@ -129,47 +129,17 @@ class CurveIndexer:
             if not event_name:
                 return None
             
-            # Parse indexed parameters (topics)
-            # topics[1] = trader, topics[2] = token
-            trader_bytes = bytes.fromhex(
-                log['topics'][1].hex()[2:] if hasattr(log['topics'][1], 'hex') 
-                else log['topics'][1][2:]
-            )
-            token_bytes = bytes.fromhex(
-                log['topics'][2].hex()[2:] if hasattr(log['topics'][2], 'hex')
-                else log['topics'][2][2:]
-            )
+            # Use common parser
+            parsed_event = parse_curve_event(log, event_name)
+            if not parsed_event:
+                return None
             
-            trader = "0x" + trader_bytes[-20:].hex()
-            token = "0x" + token_bytes[-20:].hex()
-            
-            # Parse non-indexed parameters (data)
-            data = log['data']
-            if isinstance(data, str):
-                data_bytes = bytes.fromhex(data[2:])
-            else:
-                data_bytes = data
-            
-            amount_in, amount_out = decode(["uint256", "uint256"], data_bytes)
-            
-            # Get block timestamp
+            # Get block timestamp and add to parsed event
             block = await self.w3.eth.get_block(log['blockNumber'])
+            parsed_event['timestamp'] = block['timestamp']
+            parsed_event['logIndex'] = log['logIndex']
             
-            return {
-                "eventName": event_name,
-                "blockNumber": log['blockNumber'],
-                "transactionHash": (
-                    log['transactionHash'].hex() 
-                    if hasattr(log['transactionHash'], 'hex') 
-                    else log['transactionHash']
-                ),
-                "logIndex": log['logIndex'],
-                "trader": self.w3.to_checksum_address(trader),
-                "token": self.w3.to_checksum_address(token),
-                "amountIn": amount_in,
-                "amountOut": amount_out,
-                "timestamp": block['timestamp'],
-            }
+            return parsed_event
             
         except Exception as e:
             print(f"Error parsing event: {e}")

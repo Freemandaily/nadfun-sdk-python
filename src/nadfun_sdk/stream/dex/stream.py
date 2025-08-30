@@ -8,10 +8,10 @@ import json
 from typing import List, AsyncIterator, Optional, Dict, Any
 from pathlib import Path
 from web3 import AsyncWeb3, WebSocketProvider, Web3
-from eth_abi import decode
 
 from ...constants import CONTRACTS, NADS_FEE_TIER
 from ...stream.types import EventType
+from .parser import parse_swap_event
 
 class DexStream:
     def __init__(self, ws_url: str):
@@ -108,71 +108,6 @@ class DexStream:
                     continue
                 
                 # Parse and yield event
-                event = self._parse_swap_event(log)
+                event = parse_swap_event(log)
                 if event:
                     yield event
-    
-    def _parse_swap_event(self, log: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Parse swap event from log"""
-        try:
-            topics = log.get("topics", [])
-            if len(topics) < 3:
-                return None
-            
-            # Parse addresses from topics
-            sender_topic = topics[1]
-            recipient_topic = topics[2]
-            
-            # Handle HexBytes
-            if hasattr(sender_topic, 'hex'):
-                sender_hex = sender_topic.hex()
-            else:
-                sender_hex = sender_topic
-            
-            if hasattr(recipient_topic, 'hex'):
-                recipient_hex = recipient_topic.hex()
-            else:
-                recipient_hex = recipient_topic
-            
-            # Extract addresses
-            sender = Web3.to_checksum_address("0x" + sender_hex.replace('0x', '')[-40:])
-            recipient = Web3.to_checksum_address("0x" + recipient_hex.replace('0x', '')[-40:])
-            
-            # Parse data
-            data = log.get("data")
-            if hasattr(data, 'hex'):
-                data_bytes = data
-            elif isinstance(data, str):
-                data_bytes = bytes.fromhex(data.replace('0x', ''))
-            else:
-                data_bytes = data
-            
-            # Decode: [amount0, amount1, sqrtPriceX96, liquidity, tick]
-            amount0, amount1, sqrt_price_x96, liquidity, tick = decode(
-                ["int256", "int256", "uint160", "uint128", "int24"],
-                data_bytes
-            )
-            
-            # Handle transaction hash
-            tx_hash = log.get("transactionHash")
-            if hasattr(tx_hash, 'hex'):
-                tx_hash = tx_hash.hex()
-            
-            return {
-                "eventName": "Swap",
-                "blockNumber": log.get("blockNumber"),
-                "transactionHash": tx_hash,
-                "pool": log.get("address"),
-                "sender": sender,
-                "recipient": recipient,
-                "amount0": amount0,
-                "amount1": amount1,
-                "sqrtPriceX96": sqrt_price_x96,
-                "liquidity": liquidity,
-                "tick": tick,
-            }
-            
-        except Exception as e:
-            if self.debug:
-                print(f"Parse error: {e}")
-            return None

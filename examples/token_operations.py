@@ -64,16 +64,16 @@ async def main():
             receipt = await token.wait_for_transaction(tx_hash)
             
             if receipt["status"] == 1:
-                print(f"   ✅ Transfer successful! Gas used: {receipt['gasUsed']}")
+                print(f"   Transfer successful! Gas used: {receipt['gasUsed']}")
                 
                 # Check new balance
                 new_balance = await token.get_balance(token_address)
                 new_formatted = new_balance / (10 ** metadata.decimals)
                 print(f"   New balance: {new_formatted:.4f} {metadata.symbol}")
             else:
-                print("   ❌ Transfer failed")
+                print("   Transfer failed")
         else:
-            print("\n   ⚠️ No balance to transfer")
+            print("\n   No balance to transfer")
     else:
         print("\n   ℹ️ Set RECIPIENT environment variable to test transfers and allowances")
     

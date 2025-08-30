@@ -1,70 +1,46 @@
 """
-Curve event parser utilities
+Common event parser for curve events
 """
 
 from typing import Optional, Dict, Any
 from web3 import Web3
 from eth_abi import decode
+from ..utils import extract_address_from_topic, parse_log_data, format_tx_hash
 
 
 def parse_curve_event(log: Dict[str, Any], event_name: str) -> Optional[Dict[str, Any]]:
     """
-    Parse Curve event log
+    Parse Curve event log (BUY/SELL)
     
     Args:
         log: Web3 log dict
-        event_name: "BUY" or "SELL"
+        event_name: Event name (e.g., "BUY", "SELL")
     
     Returns:
-        Parsed event dict or None
+        Parsed event dict with CurveEvent structure
     """
     try:
         topics = log.get("topics", [])
         if len(topics) < 3:
             return None
         
-        # Parse addresses from topics
-        sender_topic = topics[1]
-        token_topic = topics[2]
+        # Parse indexed parameters (topics)
+        # topics[1] = trader, topics[2] = token
+        trader = "0x" + extract_address_from_topic(topics[1])
+        token = "0x" + extract_address_from_topic(topics[2])
         
-        # Handle HexBytes
-        if hasattr(sender_topic, 'hex'):
-            sender_hex = sender_topic.hex()
-        else:
-            sender_hex = sender_topic
-        
-        if hasattr(token_topic, 'hex'):
-            token_hex = token_topic.hex()
-        else:
-            token_hex = token_topic
-        
-        # Extract addresses (last 40 chars)
-        sender = Web3.to_checksum_address("0x" + sender_hex.replace('0x', '')[-40:])
-        token = Web3.to_checksum_address("0x" + token_hex.replace('0x', '')[-40:])
-        
-        # Parse data
-        data = log.get("data")
-        if hasattr(data, 'hex'):
-            data_bytes = data
-        elif isinstance(data, str):
-            data_bytes = bytes.fromhex(data.replace('0x', ''))
-        else:
-            data_bytes = data
+        # Parse non-indexed parameters (data)
+        data_bytes = parse_log_data(log.get("data"))
         
         # Decode amounts
         amount_in, amount_out = decode(["uint256", "uint256"], data_bytes)
         
-        # Handle transaction hash
-        tx_hash = log.get("transactionHash")
-        if hasattr(tx_hash, 'hex'):
-            tx_hash = tx_hash.hex()
-        
         return {
             "eventName": event_name,
             "blockNumber": log.get("blockNumber"),
-            "transactionHash": tx_hash,
-            "trader": sender,  # More descriptive name
-            "token": token,
+            "transactionHash": "0x"+format_tx_hash(log.get("transactionHash")),
+            "trader": Web3.to_checksum_address(trader),
+            "token": Web3.to_checksum_address(token),
             "amountIn": amount_in,
             "amountOut": amount_out,
         }

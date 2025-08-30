@@ -5,56 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.2] - 2024-08-20
-
-### Added
-- Token filtering support for CurveStream - filter events by specific token addresses
+## [0.1.3] - 2024-08-31
 
 ### Changed
-- Removed debug parameters from CurveStream and DexStream for cleaner API
-- Improved token address validation in streams (filters out None and empty strings)
-
-### Fixed
-- CurveStream token filtering now actually filters events (was setting but not applying filter)
-- Fixed token address parsing in stream examples
-
-## [0.1.1] - 2024-08-20
-
-### Added
-- Historical event indexers for blockchain data analysis
-  - `CurveIndexer`: Index bonding curve events (CREATE, BUY, SELL, SYNC, LOCK, LISTED)
-  - `DexIndexer`: Index DEX swap events with automatic pool discovery from V3 factory
-- `parseMon()` utility function for converting MON amounts to wei
-- `get_block_number()` method for both indexers
-- Extended transaction parameters in `BuyParams` and `SellParams`:
-  - `nonce`: Custom transaction nonce
-  - `gas`: Gas limit override
-  - `gas_price`: Gas price override
-
-### Changed
-- Improved import structure - all main classes now available from top-level `nadfun_sdk`
-- Enhanced DexIndexer to automatically find pools from token addresses via V3 factory
-- Updated all examples to use `parseMon()` for amount conversions
-- Reorganized example files into subdirectories (`trade/`, `stream/`)
-
-### Fixed
-- Token filter in CurveIndexer now correctly pads addresses to 32 bytes
-- Import consistency across all example files
-- Environment variable validation in examples
+- **Code Structure Refactoring**
+  - Moved common utility functions from `stream/utils/event_parser.py` to `stream/utils.py`
+  - Simplified module structure by removing unnecessary nested folders
+  - Improved code organization for better maintainability
 
 ### Removed
-- Deprecated `RECIPIENT` environment variable from examples (now optional)
+- **Legacy Code Cleanup**
+  - Removed unused dataclass-based event classes (`BaseEvent`, `BuyEvent`, `SellEvent`, `SwapEvent`)
+  - Deleted `stream/utils/event_parser.py` as it was not being used
+  - Cleaned up redundant imports and exports in `__init__.py` files
 
-## [0.1.0] - 2024-08-19
+### Fixed
+- **Import Issues**
+  - Fixed missing imports for `CurveIndexer` and `DexIndexer` in main `__init__.py`
+  - Corrected stream module exports to properly expose all public APIs
+  - Ensured all exported items in `__all__` are actually imported
+
+### Improved
+- **Code Quality**
+  - Added common utility functions (`extract_address_from_topic`, `parse_log_data`, `format_tx_hash`)
+  - Reduced code duplication in indexer modules
+  - Better type consistency across the SDK
+
+## [0.1.2] - 2024-08-30
 
 ### Added
-- Initial release of Nad.fun Python SDK
-- Core trading functionality with `Trade` class
-- Token operations with `Token` class
-- Real-time event streaming with WebSocket support
-  - `CurveStream`: Monitor bonding curve events
-  - `DexStream`: Monitor DEX swap events
-- Type-safe interfaces with TypedDict
-- Comprehensive examples for all features
-- Full async/await support
-- MIT License
+- Historical event indexing with `CurveIndexer` and `DexIndexer`
+- Real-time event streaming with `CurveStream` and `DexStream`
+- TypedDict-based event types for better type hints
+
+### Changed
+- Improved event handling and parsing
+- Better WebSocket connection management
+
+## [0.1.1] - 2024-08-29
+
+### Added
+- Token operations module for ERC-20 interactions
+- Bonding curve query methods
+
+### Fixed
+- Gas estimation improvements
+- Transaction handling edge cases
+
+## [0.1.0] - 2024-08-28
+
+### Added
+- Initial release
+- Core trading functionality (buy/sell)
+- Basic token operations
+- Slippage calculation utilities
+- Async/await support throughout

@@ -79,12 +79,13 @@ class Trade:
             return CurveData(
                 reserve_mon=int(data[0]),
                 reserve_token=int(data[1]),
-                k=int(data[2]),
-                token_supply=int(data[3]),
-                virtual_mon=int(data[4]),
-                virtual_token=int(data[5]),
-                fee=int(data[6]),
-                listed=bool(data[7])
+                token_supply=int(data[2]),
+                virtual_mon=int(data[3]),
+                virtual_token=int(data[4]),
+                k=int(data[5]),
+                target_token_amount=int(data[6]),
+                init_virtual_mon_reserve=int(data[7]),
+                init_virtual_token_reserve=int(data[8])
             )
         except Exception as e:
             raise RuntimeError(f"Failed to get curve data: {e}")

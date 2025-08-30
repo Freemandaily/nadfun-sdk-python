@@ -39,12 +39,13 @@ class CurveData:
     """Bonding curve data."""
     reserve_mon: int
     reserve_token: int
-    k: int
     token_supply: int
     virtual_mon: int
     virtual_token: int
-    fee: int
-    listed: bool
+    k: int
+    target_token_amount: int
+    init_virtual_mon_reserve: int
+    init_virtual_token_reserve: int
 
 @dataclass
 class TokenMetadata:

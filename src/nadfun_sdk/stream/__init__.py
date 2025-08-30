@@ -2,28 +2,16 @@
 Stream module for real-time event monitoring
 """
 
-from .curve import CurveStream
-from .dex import DexStream
-from .types import (
-    EventType,
-    CurveEvent,
-    DexSwapEvent,
-    # Legacy dataclass events
-    BaseEvent,
-    BuyEvent, 
-    SellEvent, 
-    SwapEvent
-)
+from .curve import CurveStream, CurveIndexer
+from .dex import DexStream, DexIndexer
+from .types import EventType, CurveEvent, DexSwapEvent
 
 __all__ = [
     "CurveStream",
     "DexStream", 
+    "CurveIndexer",
+    "DexIndexer",
     "EventType",
     "CurveEvent",
     "DexSwapEvent",
-    # Legacy
-    "BaseEvent",
-    "BuyEvent",
-    "SellEvent",
-    "SwapEvent",
 ]

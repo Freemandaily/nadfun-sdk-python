@@ -85,7 +85,7 @@ class Trade:
                 k=int(data[5]),
                 target_token_amount=int(data[6]),
                 init_virtual_mon_reserve=int(data[7]),
-                init_virtual_token_reserve=int(data[8])
+                # init_virtual_token_reserve=int(data[8])
             )
         except Exception as e:
             raise RuntimeError(f"Failed to get curve data: {e}")

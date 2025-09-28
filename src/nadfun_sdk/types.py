@@ -45,7 +45,7 @@ class CurveData:
     k: int
     target_token_amount: int
     init_virtual_mon_reserve: int
-    init_virtual_token_reserve: int
+    # init_virtual_token_reserve: int
 
 @dataclass
 class TokenMetadata:
